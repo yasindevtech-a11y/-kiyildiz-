@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>İki Yıldız Erkek Kuaförü</title>
+<meta name="description" content="İki Yıldız Erkek Kuaförü - online randevu, hizmetler ve iletişim">
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{--bg:#111;--card:#1b1b1b;--line:#2c2c2c;--gold:#d4a437;--text:#f2f2f2;--mute:#9a9a9a;--ok:#3ecf6e;--bad:#e5534b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:84px}
+h1,h2,h3{margin:0}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+.hero{position:relative;height:260px;background:linear-gradient(160deg,#2a2210,#111);overflow:hidden}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
+.hero .in{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:20px 16px;background:linear-gradient(transparent,#111 90%)}
+.stars{color:var(--gold);font-size:22px;letter-spacing:4px}
+.hero h1{font-size:32px;margin:4px 0}
+.hero p{margin:0;color:var(--mute)}
+.badge{display:inline-block;margin-top:10px;padding:4px 10px;border-radius:99px;font-size:13px;font-weight:600}
+.badge.open{background:#143b22;color:var(--ok)}.badge.closed{background:#3b1816;color:var(--bad)}
+section{display:none;padding-top:18px}
+section.active{display:block}
+h2{font-size:20px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.price{color:var(--gold);font-weight:700;white-space:nowrap}
+.mute{color:var(--mute);font-size:14px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.btn{display:block;text-align:center;text-decoration:none;border:0;border-radius:12px;padding:13px;font-size:16px;font-weight:700;cursor:pointer;background:var(--gold);color:#111;width:100%}
+.btn.alt{background:var(--card);color:var(--text);border:1px solid var(--line)}
+.btn.small{padding:8px 12px;font-size:14px;width:auto}
+.btn.bad{background:#3b1816;color:var(--bad)}
+.gallery{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gallery div{aspect-ratio:1;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#2a2210,#1b1b1b);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:28px}
+.gallery img{width:100%;height:100%;object-fit:cover;display:block}
+label{display:block;margin:12px 0 6px;font-size:14px;color:var(--mute)}
+input,select,textarea{width:100%;padding:13px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:16px;font-family:inherit}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slot{padding:10px 0;text-align:center;border-radius:10px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:15px}
+.slot.sel{background:var(--gold);color:#111;border-color:var(--gold);font-weight:700}
+.slot.dis{opacity:.3;pointer-events:none;text-decoration:line-through}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 14px;border-radius:99px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:15px}
+.chip.sel{background:var(--gold);color:#111;border-color:var(--gold);font-weight:700}
+iframe{width:100%;height:240px;border:0;border-radius:14px;filter:grayscale(.3)}
+.status{font-size:13px;font-weight:700;padding:3px 9px;border-radius:99px}
+.st-bekliyor{background:#3b2f10;color:var(--gold)}.st-iptal{background:#3b1816;color:var(--bad)}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#0c0c0cf2;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);backdrop-filter:blur(8px);z-index:10}
+nav button{flex:1;background:none;border:0;color:var(--mute);padding:10px 0 8px;font-size:11px;cursor:pointer}
+nav button span{display:block;font-size:20px}
+nav button.active{color:var(--gold)}
+#install{display:none;margin:12px 0}
+.toast{position:fixed;left:16px;right:16px;bottom:96px;background:var(--gold);color:#111;padding:14px;border-radius:12px;font-weight:700;text-align:center;display:none;z-index:20}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <img id="heroImg" src="images/kapak.jpg" alt="" onerror="this.style.display='none'">
+  <div class="in wrap">
+    <div class="stars">★ ★</div>
+    <h1>İki Yıldız</h1>
+    <p>Erkek Kuaförü</p>
+    <div><span id="openBadge" class="badge"></span></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ANA SAYFA -->
+  <section id="home" class="active">
+    <h2>Hoş geldiniz</h2>
+    <p class="mute" id="about"></p>
+    <div class="btns">
+      <button class="btn" onclick="go('book')">Randevu Al</button>
+      <a class="btn alt" id="callBtn">Hemen Ara</a>
+    </div>
+    <button class="btn alt" id="install">📲 Uygulamayı telefona ekle</button>
+    <h2 style="margin-top:20px">Hizmetler</h2>
+    <div id="services"></div>
+    <h2 style="margin-top:20px">Galeri</h2>
+    <div class="gallery" id="gallery"></div>
+  </section>
+
+  <!-- RANDEVU -->
+  <section id="book">
+    <h2>Randevu Al</h2>
+    <form id="form" autocomplete="on">
+      <label>Hizmet</label>
+      <div class="chips" id="svcChips"></div>
+      <label for="date">Tarih</label>
+      <input type="date" id="date" required>
+      <label>Saat</label>
+      <div class="slots" id="slots"></div>
+      <p class="mute" id="slotInfo"></p>
+      <label for="name">Ad Soyad</label>
+      <input id="name" name="name" required autocomplete="name">
+      <label for="phone">Telefon</label>
+      <input id="phone" name="phone" type="tel" required autocomplete="tel" placeholder="05XX XXX XX XX">
+      <label for="note">Not (isteğe bağlı)</label>
+      <textarea id="note" rows="2"></textarea>
+      <button class="btn" style="margin-top:16px" type="submit">Randevu Talebini Gönder</button>
+      <p class="mute">Talebiniz WhatsApp ile kuaföre iletilir. Onay mesajı geldiğinde randevunuz kesinleşir.</p>
+    </form>
+  </section>
+
+  <!-- RANDEVULARIM -->
+  <section id="mine">
+    <h2>Randevularım</h2>
+    <div id="list"></div>
+  </section>
+
+  <!-- İLETİŞİM -->
+  <section id="contact">
+    <h2>Adres ve Konum</h2>
+    <div class="card"><div id="addr"></div></div>
+    <iframe id="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Harita"></iframe>
+    <div class="btns">
+      <a class="btn" id="dirBtn" target="_blank" rel="noopener">Yol Tarifi</a>
+      <a class="btn alt" id="waBtn" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+    <h2 style="margin-top:16px">Çalışma Saatleri</h2>
+    <div class="card" id="hours"></div>
+  </section>
+
+</main>
+
+<nav>
+  <button class="active" data-t="home"><span>🏠</span>Ana Sayfa</button>
+  <button data-t="book"><span>✂️</span>Randevu</button>
+  <button data-t="mine"><span>📋</span>Randevularım</button>
+  <button data-t="contact"><span>📍</span>İletişim</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======== BURAYI KENDİNİZE GÖRE DÜZENLEYİN ======== */
+const SHOP = {
+  about: "İki Yıldız Erkek Kuaförü'nde saç kesimi, sakal tasarımı ve bakım hizmetleri. Online randevu ile sırada beklemeden hizmet alın.",
+  phone: "05XX XXX XX XX",          // arama butonu için
+  whatsapp: "905XXXXXXXXX",          // başında + olmadan, 90 ile başlayan numara
+  address: "Örnek Mah. Örnek Cad. No:1, İstanbul",
+  mapQuery: "Örnek Mah. Örnek Cad. No:1, İstanbul", // Google Haritalar'da arayınca çıkan adres
+  // Gün: 0=Pazar ... 6=Cumartesi. null = kapalı. [açılış, kapanış] saat olarak
+  hours: {0:null,1:[10,20],2:[10,20],3:[10,20],4:[10,20],5:[10,20],6:[10,20]},
+  slotMinutes: 30,
+  services: [
+    {name:"Saç Kesimi", price:"250 ₺", min:30},
+    {name:"Sakal Tıraşı", price:"150 ₺", min:30},
+    {name:"Saç + Sakal", price:"350 ₺", min:60},
+    {name:"Çocuk Tıraşı", price:"200 ₺", min:30},
+    {name:"Cilt Bakımı", price:"200 ₺", min:30}
+  ],
+  // Fotoğrafları images/ klasörüne koyup adlarını buraya yazın
+  gallery: ["images/g1.jpg","images/g2.jpg","images/g3.jpg","images/g4.jpg"]
+};
+/* =================================================== */
+
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const DAYS=["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+const store={get:()=>{try{return JSON.parse(localStorage.getItem("iy_rand")||"[]")}catch(e){return[]}},set:v=>{try{localStorage.setItem("iy_rand",JSON.stringify(v))}catch(e){}}};
+let selSvc=SHOP.services[0].name, selTime=null;
+
+function go(id){
+  $$("section").forEach(s=>s.classList.toggle("active",s.id===id));
+  $$("nav button").forEach(b=>b.classList.toggle("active",b.dataset.t===id));
+  if(id==="mine")renderList();
+  scrollTo(0,0);
+}
+$$("nav button").forEach(b=>b.onclick=()=>go(b.dataset.t));
+
+function toast(t){const e=$("#toast");e.textContent=t;e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
+
+function init(){
+  $("#about").textContent=SHOP.about;
+  $("#callBtn").href="tel:"+SHOP.phone.replace(/\s/g,"");
+  $("#callBtn").textContent="📞 "+SHOP.phone;
+  $("#services").innerHTML=SHOP.services.map(s=>`<div class="card row"><div><b>${s.name}</b><div class="mute">${s.min} dk</div></div><div class="price">${s.price}</div></div>`).join("");
+  $("#gallery").innerHTML=SHOP.gallery.map(g=>`<div>★<img src="${g}" alt="" style="position:absolute" onerror="this.remove()"></div>`).join("");
+  // galeri kutuları: img üstte, yoksa yıldız kalsın
+  $$("#gallery div").forEach(d=>{d.style.position="relative";d.querySelector("img").style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"});
+  $("#svcChips").innerHTML=SHOP.services.map((s,i)=>`<div class="chip${i?"":" sel"}" data-n="${s.name}">${s.name}</div>`).join("");
+  $$("#svcChips .chip").forEach(c=>c.onclick=()=>{$$("#svcChips .chip").forEach(x=>x.classList.remove("sel"));c.classList.add("sel");selSvc=c.dataset.n});
+  $("#addr").textContent="📍 "+SHOP.address;
+  $("#map").src="https://maps.google.com/maps?q="+encodeURIComponent(SHOP.mapQuery)+"&output=embed";
+  $("#dirBtn").href="https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(SHOP.mapQuery);
+  $("#waBtn").href="https://wa.me/"+SHOP.whatsapp;
+  $("#hours").innerHTML=[1,2,3,4,5,6,0].map(d=>{const h=SHOP.hours[d];return `<div class="row" style="padding:4px 0"><span>${DAYS[d]}</span><span class="${h?"":"mute"}">${h?pad(h[0])+":00 - "+pad(h[1])+":00":"Kapalı"}</span></div>`}).join("");
+  const d=$("#date");const t=new Date();d.min=iso(t);d.value=iso(t);
+  d.onchange=renderSlots;renderSlots();openBadge();
+}
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+
+function openBadge(){
+  const n=new Date(),h=SHOP.hours[n.getDay()],b=$("#openBadge");
+  const open=h&&n.getHours()+n.getMinutes()/60>=h[0]&&n.getHours()+n.getMinutes()/60<h[1];
+  b.textContent=open?"● Şu an açık":"● Şu an kapalı";b.className="badge "+(open?"open":"closed");
+}
+
+function renderSlots(){
+  selTime=null;
+  const dv=$("#date").value;if(!dv){return}
+  const d=new Date(dv+"T00:00"),h=SHOP.hours[d.getDay()],box=$("#slots");
+  if(!h){box.innerHTML="";$("#slotInfo").textContent="Bu gün kapalıyız, lütfen başka bir gün seçin.";return}
+  $("#slotInfo").textContent="";
+  const taken=store.get().filter(r=>r.date===dv&&r.status!=="iptal").map(r=>r.time);
+  const now=new Date();let html="";
+  for(let m=h[0]*60;m<h[1]*60;m+=SHOP.slotMinutes){
+    const t=pad(Math.floor(m/60))+":"+pad(m%60);
+    const past=iso(now)===dv&&m<=now.getHours()*60+now.getMinutes();
+    html+=`<div class="slot${past||taken.includes(t)?" dis":""}" data-t="${t}">${t}</div>`;
+  }
+  box.innerHTML=html;
+  $$("#slots .slot").forEach(s=>s.onclick=()=>{$$("#slots .slot").forEach(x=>x.classList.remove("sel"));s.classList.add("sel");selTime=s.dataset.t});
+}
+
+$("#form").onsubmit=e=>{
+  e.preventDefault();
+  if(!selTime){toast("Lütfen bir saat seçin");return}
+  const r={id:Date.now(),svc:selSvc,date:$("#date").value,time:selTime,name:$("#name").value.trim(),phone:$("#phone").value.trim(),note:$("#note").value.trim(),status:"bekliyor"};
+  const all=store.get();all.push(r);store.set(all);
+  const dt=new Date(r.date+"T00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",weekday:"long"});
+  const msg=`Merhaba, randevu talebi:\n✂️ ${r.svc}\n📅 ${dt}\n🕐 ${r.time}\n👤 ${r.name}\n📞 ${r.phone}`+(r.note?`\n📝 ${r.note}`:"");
+  window.open("https://wa.me/"+SHOP.whatsapp+"?text="+encodeURIComponent(msg),"_blank");
+  $("#form").reset();$("#date").value=iso(new Date());renderSlots();
+  toast("Talebiniz hazırlandı, WhatsApp'tan gönderin");go("mine");
+};
+
+function renderList(){
+  const all=store.get().sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  $("#list").innerHTML=all.length?all.map(r=>{
+    const dt=new Date(r.date+"T00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",weekday:"long"});
+    return `<div class="card"><div class="row"><b>${esc(r.svc)}</b><span class="status st-${r.status==="iptal"?"iptal":"bekliyor"}">${r.status==="iptal"?"İptal":"Onay bekliyor"}</span></div>
+    <div class="mute" style="margin:6px 0">📅 ${dt} · 🕐 ${r.time}</div>
+    ${r.status!=="iptal"?`<button class="btn bad small" onclick="cancel(${r.id})">İptal Et</button>`:""}</div>`}).join(""):`<p class="mute">Henüz randevunuz yok.</p><button class="btn" onclick="go('book')">Randevu Al</button>`;
+}
+function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function cancel(id){
+  if(!confirm("Randevu iptal edilsin mi?"))return;
+  const all=store.get(),r=all.find(x=>x.id===id);if(r)r.status="iptal";store.set(all);renderList();renderSlots();
+  window.open("https://wa.me/"+SHOP.whatsapp+"?text="+encodeURIComponent(`Merhaba, ${r.date} ${r.time} tarihli randevumu iptal ediyorum. (${r.name})`),"_blank");
+}
+
+// PWA: kurulum + service worker
+let dp;addEventListener("beforeinstallprompt",e=>{e.preventDefault();dp=e;$("#install").style.display="block"});
+$("#install").onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;$("#install").style.display="none"}};
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));
+
+init();
+</script>
+</body>
+</html>
