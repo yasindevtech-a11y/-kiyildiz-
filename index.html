@@ -146,7 +146,7 @@ const DEF={
   address:"Örnek Mah. Örnek Cad. No:1, İstanbul",mapQuery:"Örnek Mah. Örnek Cad. No:1, İstanbul",
   hours:{0:null,1:[10,20],2:[10,20],3:[10,20],4:[10,20],5:[10,20],6:[10,20]},
   services:[{name:"Saç Kesimi",price:"250 ₺",min:30},{name:"Sakal Tıraşı",price:"150 ₺",min:30},{name:"Saç + Sakal",price:"350 ₺",min:60}],
-  gallery:[],ntfyTopic:"",repo:""
+  gallery:[],ntfyTopic:"",repo:"",pubKey:null
 };
 const STEP=30;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
@@ -253,6 +253,27 @@ async function ntfy(title,message){
   if(!r.ok)throw new Error("ntfy "+r.status);
 }
 
+/* Talepler yöneticinin açık anahtarıyla şifrelenir: ntfy konusunu bulan biri ad/telefon okuyamaz */
+const toB=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
+async function encPayload(obj){
+  const pk=await crypto.subtle.importKey("jwk",SHOP.pubKey,{name:"RSA-OAEP",hash:"SHA-256"},false,["encrypt"]);
+  const aes=await crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt"]);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},aes,new TextEncoder().encode(JSON.stringify(obj)));
+  const wk=await crypto.subtle.encrypt({name:"RSA-OAEP"},pk,await crypto.subtle.exportKey("raw",aes));
+  return btoa(JSON.stringify({k:toB(wk),iv:toB(iv),ct:toB(ct)}));
+}
+async function sendReq(cancel,p){
+  if(SHOP.pubKey&&window.crypto&&crypto.subtle){
+    const t=cancel?"İptal talebi":"Yeni randevu talebi";
+    await ntfy(t,t+" geldi. Ayrıntılar için yönetici uygulamasını açın.\nENC:"+await encPayload({...p,cancel}));
+    return;
+  }
+  // eski yöntem (yönetici uygulaması henüz anahtar üretmediyse)
+  const msg=[cancel?"İPTAL TALEBİ":"YENİ RANDEVU TALEBİ","Hizmet: "+p.svc,"Tarih: "+fmtDate(p.date)+" · "+p.time,"Ad: "+p.name,"Tel: "+p.phone,p.note?"Not: "+p.note:"","Kod: "+[p.id,p.date,p.time,p.n,p.min].join("|")].filter(Boolean).join("\n");
+  await ntfy((cancel?"İptal talebi: ":"Yeni randevu: ")+p.name,msg);
+}
+
 async function submitBooking(e){
   e.preventDefault();
   if(!SHOP.ntfyTopic){toast("Online randevu şu an kapalı, lütfen arayın.");return}
@@ -266,8 +287,7 @@ async function submitBooking(e){
     const times=slotTimes(dv),i=times.indexOf(selTime);
     for(let j=i;j<i+n;j++)if(STATE.taken[dv+"_"+times[j]]){toast("Bu saat az önce doldu, başka saat seçin.");renderSlots();return}
     const id=Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
-    const msg=["YENİ RANDEVU TALEBİ","Hizmet: "+svc.name,"Tarih: "+fmtDate(dv)+" · "+selTime,"Ad: "+name,"Tel: "+phone,note?"Not: "+note:"","Kod: "+[id,dv,selTime,n,svc.min].join("|")].filter(Boolean).join("\n");
-    await ntfy("Yeni randevu: "+name,msg);
+    await sendReq(false,{id,date:dv,time:selTime,n,min:+svc.min||30,svc:svc.name,name,phone,note});
     lsSet("iy_my",[{id,svc:svc.name,date:dv,time:selTime,n,name,phone,ts:Date.now()},...getMine()].slice(0,40));
     $("#form").reset();$("#date").value=iso(new Date());
     toast("Talebiniz iletildi! Onaylanınca durumu burada görünür.");go("mine");
@@ -298,7 +318,7 @@ const ACT={
     if(!confirm("İptal talebi kuaföre iletilsin mi?"))return;
     const l=getMine(),r=l.find(x=>x.id===d.id);if(!r)return;
     try{
-      await ntfy("İptal talebi: "+r.name,["İPTAL TALEBİ","Hizmet: "+r.svc,"Tarih: "+fmtDate(r.date)+" · "+r.time,"Ad: "+r.name,"Tel: "+r.phone,"Kod: "+[r.id,r.date,r.time,r.n||1,30].join("|")].join("\n"));
+      await sendReq(true,{id:r.id,date:r.date,time:r.time,n:r.n||1,min:30,svc:r.svc,name:r.name,phone:r.phone,note:""});
       r.cancelReq=true;lsSet("iy_my",l);toast("İptal talebiniz iletildi");renderList();
     }catch(e){toast("Gönderilemedi, lütfen arayın")}
   }

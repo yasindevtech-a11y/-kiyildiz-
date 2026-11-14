@@ -163,6 +163,7 @@ ol{padding-left:18px;margin:8px 0}li{margin-bottom:6px}
     </div>
     <div class="card"><h2>Hesap</h2>
       <div class="acts"><button class="btn alt sm" data-act="changePass">Şifreyi değiştir</button>
+      <button class="btn alt sm" data-act="changeToken">Token'ı yenile</button>
       <button class="btn bad sm" data-act="resetAll">Bu telefondan çıkış (token'ı sil)</button></div></div>
   </div>
 
@@ -213,6 +214,39 @@ async function encryptToken(pass,token){
 async function decryptToken(pass,v){
   const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromB(v.iv)},await keyFrom(pass,fromB(v.salt)),fromB(v.ct));
   return dec.decode(pt);
+}
+
+/* ---------- Talep şifreleme anahtarı (RSA): özel anahtar şifreyle korunur ---------- */
+let PRIV=null,PRIVSTR=null;
+async function encryptText(pass,text){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},await keyFrom(pass,salt),enc.encode(text));
+  return{salt:toB(salt),iv:toB(iv),ct:toB(ct)};
+}
+const pubOf=j=>({kty:"RSA",n:j.n,e:j.e,alg:"RSA-OAEP-256",ext:true,key_ops:["encrypt"]});
+async function ensureKeys(pass){
+  let jwk=null;
+  if(V.priv){try{jwk=JSON.parse(await decryptToken(pass,V.priv))}catch(e){jwk=null}}
+  if(!jwk){
+    const kp=await crypto.subtle.generateKey({name:"RSA-OAEP",modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["encrypt","decrypt"]);
+    jwk=await crypto.subtle.exportKey("jwk",kp.privateKey);
+    V.priv=await encryptText(pass,JSON.stringify(jwk));lsSet("iy_vault",V);
+    CFG.pubKey=pubOf(jwk);await saveCfg("Şifreleme anahtarı");
+  }else if(!CFG.pubKey||CFG.pubKey.n!==jwk.n){
+    CFG.pubKey=pubOf(jwk);await saveCfg("Şifreleme anahtarı");
+  }
+  PRIVSTR=JSON.stringify(jwk);
+  PRIV=await crypto.subtle.importKey("jwk",{...jwk,key_ops:["decrypt"],ext:false},{name:"RSA-OAEP",hash:"SHA-256"},false,["decrypt"]);
+}
+async function decryptReq(b){
+  const o=JSON.parse(atob(b));
+  const raw=await crypto.subtle.decrypt({name:"RSA-OAEP"},PRIV,fromB(o.k));
+  const aes=await crypto.subtle.importKey("raw",raw,"AES-GCM",false,["decrypt"]);
+  return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:fromB(o.iv)},aes,fromB(o.ct))));
+}
+function cleanReq(o){
+  if(!o||!/^[a-z0-9]{6,16}$/.test(o.id||"")||!/^\d{4}-\d\d-\d\d$/.test(o.date||"")||!/^\d\d:\d\d$/.test(o.time||""))return null;
+  return{id:o.id,date:o.date,time:o.time,n:Math.min(4,Math.max(1,+o.n||1)),min:+o.min||30,svc:String(o.svc||"").slice(0,60),name:String(o.name||"").slice(0,60),phone:String(o.phone||"").replace(/\D/g,"").slice(0,11),note:String(o.note||"").slice(0,200),cancel:!!o.cancel};
 }
 
 /* ---------- GitHub ---------- */
@@ -289,23 +323,25 @@ async function setup(){
     if(!r.ok){V={owner,repo};TOKEN=token;const t=await errText(r);V=null;TOKEN=null;msg("#setMsg",t,"err");return}
     const vault=await encryptToken(p1,token);
     V={owner,repo,...vault};TOKEN=token;
-    await afterUnlock();
+    await afterUnlock(p1);
     lsSet("iy_vault",V);
     msg("#setMsg","");
   }catch(e){V=lsGet("iy_vault",null);TOKEN=null;msg("#setMsg","Hata: "+e.message,"err")}
 }
 async function unlock(e){
   e.preventDefault();msg("#lkMsg","Açılıyor...");
-  try{TOKEN=await decryptToken($("#lk_pass").value,V)}
+  const pw=$("#lk_pass").value;
+  try{TOKEN=await decryptToken(pw,V)}
   catch(err){TOKEN=null;msg("#lkMsg","Şifre yanlış.","err");return}
   $("#lk_pass").value="";
-  try{await afterUnlock();msg("#lkMsg","")}catch(err){TOKEN=null;msg("#lkMsg","Bağlantı hatası: "+err.message,"err")}
+  try{await afterUnlock(pw);msg("#lkMsg","")}catch(err){TOKEN=null;msg("#lkMsg","Bağlantı hatası: "+err.message,"err")}
 }
-async function afterUnlock(){
+async function afterUnlock(pw){
   await loadCfg();
+  await ensureKeys(pw);
   screen();renderAll();connect();
 }
-function lock(){TOKEN=null;CFG=null;if(es){es.close();es=null}screen();$("#live").classList.remove("on")}
+function lock(){TOKEN=null;CFG=null;PRIV=null;PRIVSTR=null;if(es){es.close();es=null}screen();$("#live").classList.remove("on")}
 
 /* ---------- Bildirim / canlı talep akışı ---------- */
 function parseMsg(m){
@@ -323,10 +359,14 @@ function connect(){
   es.onerror=()=>$("#live").classList.remove("on");
   es.onmessage=ev=>{try{const m=JSON.parse(ev.data);if(m.event==="message")handleMsg(m)}catch(e){}};
 }
-function handleMsg(m){
+async function handleMsg(m){
   const seen=lsGet("iy_seen",[]);if(seen.includes(m.id))return;
   lsSet("iy_seen",[...seen,m.id].slice(-300));lsSet("iy_since",m.id);
-  const p=parseMsg(m.message);if(!p)return;
+  let p=null;
+  const el=String(m.message).split("\n").find(x=>x.startsWith("ENC:"));
+  if(el){try{p=cleanReq(await decryptReq(el.slice(4).trim()))}catch(e){p=null}}
+  else p=parseMsg(m.message);
+  if(!p)return;
   const ex=REQS.find(r=>r.id===p.id);
   if(p.cancel){
     if(ex){if(ex.status==="iptal")return;ex.cancelReq=true}
@@ -475,11 +515,19 @@ const ACT={
     CFG.ntfyTopic="iykuafor-"+[...crypto.getRandomValues(new Uint8Array(12))].map(x=>x.toString(36).padStart(2,"0")).join("").slice(0,18);
     try{await saveCfg("Bildirim konusu");lsSet("iy_since","12h");connect();renderSettings();toast("Yeni konu hazır")}catch(e){msg("#msg",e.message,"err")}
   },
+  changeToken:async()=>{
+    const pw=prompt("Uygulama şifreniz:");if(pw==null)return;
+    try{await decryptToken(pw,V)}catch(e){toast("Şifre yanlış");return}
+    const nt=(prompt("Yeni GitHub token'ını yapıştırın (github_pat_...):")||"").trim();if(!nt)return;
+    const r=await fetch(`https://api.github.com/repos/${V.owner}/${V.repo}/contents/`,{headers:{Authorization:"Bearer "+nt}});
+    if(!r.ok){const old=TOKEN;TOKEN=nt;const t=await errText(r);TOKEN=old;msg("#msg",t,"err");scrollTo(0,0);return}
+    V={...V,...(await encryptToken(pw,nt))};lsSet("iy_vault",V);TOKEN=nt;toast("Token yenilendi");
+  },
   changePass:async()=>{
     const old=prompt("Mevcut şifre:");if(old==null)return;
     try{await decryptToken(old,V)}catch(e){toast("Mevcut şifre yanlış");return}
     const n=prompt("Yeni şifre (en az 6 karakter):");if(!n||n.length<6){toast("Şifre değişmedi");return}
-    V={owner:V.owner,repo:V.repo,...(await encryptToken(n,TOKEN))};lsSet("iy_vault",V);toast("Şifre değişti");
+    V={owner:V.owner,repo:V.repo,...(await encryptToken(n,TOKEN)),priv:await encryptText(n,PRIVSTR)};lsSet("iy_vault",V);toast("Şifre değişti");
   }
 };
 document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el)return;if(el.tagName==="A"&&el.getAttribute("href")==="#")e.preventDefault();const f=ACT[el.dataset.act];if(f)f(el.dataset,el)});
