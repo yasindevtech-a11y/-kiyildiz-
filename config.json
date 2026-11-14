@@ -1,0 +1,55 @@
+{
+  "name": "İki Yıldız",
+  "hero": "",
+  "about": "",
+  "phone": "",
+  "whatsapp": "",
+  "address": "",
+  "mapQuery": "",
+  "hours": {
+    "0": null,
+    "1": [
+      10,
+      20
+    ],
+    "2": [
+      10,
+      20
+    ],
+    "3": [
+      10,
+      20
+    ],
+    "4": [
+      10,
+      20
+    ],
+    "5": [
+      10,
+      20
+    ],
+    "6": [
+      10,
+      20
+    ]
+  },
+  "services": [
+    {
+      "name": "Saç Kesimi",
+      "price": "250 ₺",
+      "min": 30
+    },
+    {
+      "name": "Sakal Tıraşı",
+      "price": "150 ₺",
+      "min": 30
+    },
+    {
+      "name": "Saç + Sakal",
+      "price": "350 ₺",
+      "min": 60
+    }
+  ],
+  "gallery": [],
+  "ntfyTopic": "iykuafor-6q1c641z1p025f5b1o"
+}
