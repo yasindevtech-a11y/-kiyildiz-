@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Yönetim Paneli</title>
+<style>
+:root{--bg:#111;--card:#1b1b1b;--line:#2c2c2c;--gold:#d4a437;--text:#f2f2f2;--mute:#9a9a9a;--ok:#3ecf6e;--bad:#e5534b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:90px}
+.wrap{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:0 0 10px;color:var(--gold)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.mute{color:var(--mute);font-size:13px;line-height:1.5}
+label{display:block;margin:10px 0 5px;font-size:13px;color:var(--mute)}
+input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#111;color:var(--text);font-size:16px;font-family:inherit}
+.btn{border:0;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:700;cursor:pointer;background:var(--gold);color:#111}
+.btn.alt{background:#2a2a2a;color:var(--text)}.btn.bad{background:#3b1816;color:var(--bad)}
+.btn.sm{padding:8px 12px;font-size:13px}
+.row{display:flex;gap:8px;align-items:center}
+.svc{display:grid;grid-template-columns:1fr 80px 60px 38px;gap:6px;margin-bottom:8px}
+.svc button{padding:0}
+.day{display:grid;grid-template-columns:100px 1fr 1fr;gap:6px;align-items:center;margin-bottom:8px}
+.day label{margin:0;display:flex;gap:6px;align-items:center;color:var(--text)}
+.day input[type=checkbox]{width:auto}
+.hero-prev{width:100%;height:150px;object-fit:cover;border-radius:10px;background:#111;display:block;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.g{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#111}
+.g img{width:100%;height:100%;object-fit:cover}
+.g button{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;border:0;background:#000b;color:#fff;font-size:15px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#0c0c0cf5;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:none}
+.bar .btn{width:100%;padding:14px;font-size:16px}
+.msg{padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px;display:none}
+.msg.ok{display:block;background:#143b22;color:var(--ok)}.msg.err{display:block;background:#3b1816;color:var(--bad)}
+ol{padding-left:18px;margin:8px 0}li{margin-bottom:6px}
+a{color:var(--gold)}
+#editor{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>★ ★ Yönetim Paneli</h1>
+  <p class="mute">Bilgileri, fiyatları, çalışma saatlerini ve fotoğrafları buradan değiştirin.</p>
+  <div class="msg" id="msg"></div>
+
+  <!-- GİRİŞ -->
+  <div id="login">
+    <div class="card">
+      <h2>Giriş</h2>
+      <label>GitHub kullanıcı adı</label>
+      <input id="l_owner" autocapitalize="off" autocomplete="off">
+      <label>Depo (repository) adı</label>
+      <input id="l_repo" autocapitalize="off" autocomplete="off">
+      <label>Erişim anahtarı (token)</label>
+      <input id="l_token" type="password" autocomplete="off" placeholder="github_pat_...">
+      <p class="mute">Anahtar sadece bu telefonda saklanır, kimseyle paylaşmayın.</p>
+      <button class="btn" style="width:100%" onclick="doLogin()">Giriş Yap</button>
+    </div>
+    <div class="card">
+      <h2>Anahtarı nasıl alırım? (bir kere)</h2>
+      <ol class="mute">
+        <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Buraya dokunun</a> (GitHub'a giriş yapmış olmalısınız).</li>
+        <li><b>Token name:</b> kuafor-panel yazın. <b>Expiration:</b> 1 year seçin.</li>
+        <li><b>Repository access:</b> <i>Only select repositories</i> seçip sadece bu depoyu seçin.</li>
+        <li><b>Permissions &gt; Repository permissions &gt; Contents:</b> <i>Read and write</i> yapın.</li>
+        <li><b>Generate token</b>'a basın, çıkan <code>github_pat_...</code> kodunu kopyalayıp yukarı yapıştırın.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- DÜZENLEYİCİ -->
+  <div id="editor">
+    <div class="card">
+      <h2>Genel Bilgiler</h2>
+      <label>İşletme adı</label><input id="f_name">
+      <label>Tanıtım yazısı</label><textarea id="f_about" rows="3"></textarea>
+      <label>Telefon (arama butonu)</label><input id="f_phone" type="tel">
+      <label>WhatsApp numarası (905XXXXXXXXX biçiminde)</label><input id="f_whatsapp" type="tel">
+      <label>Adres</label><textarea id="f_address" rows="2"></textarea>
+      <label>Haritada aranacak adres</label><input id="f_mapQuery">
+      <p class="mute">İpucu: Google Haritalar'da işletmenizi aratıp çıkan adres/isim tam yazılırsa konum doğru gösterilir.</p>
+      <label>Randevu aralığı</label>
+      <select id="f_slot"><option value="15">15 dk</option><option value="30">30 dk</option><option value="45">45 dk</option><option value="60">60 dk</option></select>
+    </div>
+
+    <div class="card">
+      <h2>Çalışma Saatleri</h2>
+      <div id="hoursBox"></div>
+    </div>
+
+    <div class="card">
+      <h2>Hizmetler ve Fiyatlar</h2>
+      <div id="svcBox"></div>
+      <button class="btn alt sm" onclick="addSvc()">+ Hizmet ekle</button>
+    </div>
+
+    <div class="card">
+      <h2>Kapak Fotoğrafı</h2>
+      <img id="heroPrev" class="hero-prev" alt="">
+      <button class="btn alt sm" onclick="$('#heroFile').click()">Fotoğraf seç</button>
+      <input id="heroFile" type="file" accept="image/*" hidden>
+    </div>
+
+    <div class="card">
+      <h2>Galeri</h2>
+      <div class="grid" id="galBox"></div>
+      <button class="btn alt sm" onclick="$('#galFile').click()">+ Fotoğraf ekle</button>
+      <input id="galFile" type="file" accept="image/*" multiple hidden>
+    </div>
+
+    <div class="card">
+      <button class="btn bad sm" onclick="logout()">Çıkış yap (anahtarı sil)</button>
+    </div>
+  </div>
+</div>
+
+<div class="bar" id="bar"><button class="btn" id="saveBtn" onclick="save()">Kaydet ve Yayınla</button></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const DAYS=["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+const DAY_ORDER=[1,2,3,4,5,6,0];
+let cfg=null, sha=null, prev={};
+let S={};try{S=JSON.parse(localStorage.getItem("iy_admin")||"{}")}catch(e){}
+
+// Adresten kullanıcı adı ve depo adını tahmin et
+const host=location.hostname, parts=location.pathname.split("/").filter(Boolean);
+const gOwner=host.endsWith(".github.io")?host.split(".")[0]:"";
+const gRepo=parts.length>1?parts[0]:(host.endsWith(".github.io")?host:"");
+$("#l_owner").value=S.owner||gOwner;$("#l_repo").value=S.repo||gRepo;$("#l_token").value=S.token||"";
+
+function msg(t,type){const m=$("#msg");m.textContent=t;m.className="msg "+(type||"ok");if(!t)m.className="msg";scrollTo(0,0)}
+const b64e=s=>btoa(unescape(encodeURIComponent(s)));
+const b64d=s=>decodeURIComponent(escape(atob(s.replace(/\n/g,""))));
+
+function api(path,opts){
+  opts=opts||{};
+  return fetch(`https://api.github.com/repos/${S.owner}/${S.repo}/contents/${path}`,{
+    ...opts,
+    headers:{Authorization:"Bearer "+S.token,Accept:"application/vnd.github+json","Content-Type":"application/json"}
+  });
+}
+async function errText(r){
+  let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401)return "Anahtar geçersiz veya süresi dolmuş.";
+  if(r.status===403||r.status===404)return "Erişim yok: anahtarda 'Contents: Read and write' izni ve doğru depo seçili mi? ("+r.status+")";
+  return (j.message||"Hata")+" ("+r.status+")";
+}
+
+async function doLogin(){
+  S={owner:$("#l_owner").value.trim(),repo:$("#l_repo").value.trim(),token:$("#l_token").value.trim()};
+  if(!S.owner||!S.repo||!S.token){msg("Üç alanı da doldurun.","err");return}
+  msg("Bağlanılıyor...");
+  try{
+    const r=await api("config.json");
+    if(r.status===404){
+      const chk=await fetch(`https://api.github.com/repos/${S.owner}/${S.repo}`,{headers:{Authorization:"Bearer "+S.token}});
+      if(!chk.ok){msg(await errText(chk),"err");return}
+      cfg={name:"İki Yıldız",heroImage:"images/kapak.jpg",about:"",phone:"",whatsapp:"",address:"",mapQuery:"",hours:{0:null,1:[10,20],2:[10,20],3:[10,20],4:[10,20],5:[10,20],6:[10,20]},slotMinutes:30,services:[],gallery:[]};sha=null;
+    }else if(!r.ok){msg(await errText(r),"err");return}
+    else{const j=await r.json();sha=j.sha;cfg=JSON.parse(b64d(j.content))}
+    localStorage.setItem("iy_admin",JSON.stringify(S));
+    msg("");$("#login").style.display="none";$("#editor").style.display="block";$("#bar").style.display="block";
+    render();
+  }catch(e){msg("Bağlantı hatası: "+e.message,"err")}
+}
+function logout(){if(!confirm("Anahtar bu telefondan silinsin mi?"))return;localStorage.removeItem("iy_admin");location.reload()}
+
+function render(){
+  $("#f_name").value=cfg.name||"";$("#f_about").value=cfg.about||"";$("#f_phone").value=cfg.phone||"";
+  $("#f_whatsapp").value=cfg.whatsapp||"";$("#f_address").value=cfg.address||"";$("#f_mapQuery").value=cfg.mapQuery||"";
+  $("#f_slot").value=String(cfg.slotMinutes||30);
+  $("#hoursBox").innerHTML=DAY_ORDER.map(d=>{
+    const h=(cfg.hours||{})[d];
+    return `<div class="day"><label><input type="checkbox" id="h_on${d}" ${h?"checked":""}>${DAYS[d]}</label>
+    <input type="number" min="0" max="23" id="h_a${d}" value="${h?h[0]:10}" placeholder="Açılış">
+    <input type="number" min="1" max="24" id="h_b${d}" value="${h?h[1]:20}" placeholder="Kapanış"></div>`}).join("")+`<p class="mute">Kutu işaretli değilse o gün kapalı. Saatler 24 saatlik (örn. 10 ve 20).</p>`;
+  renderSvc();renderImgs();
+}
+function renderSvc(){
+  $("#svcBox").innerHTML=(cfg.services||[]).map((s,i)=>`<div class="svc">
+    <input class="sn" value="${esc(s.name)}" placeholder="Hizmet adı">
+    <input class="sp" value="${esc(s.price)}" placeholder="Fiyat">
+    <input class="sm" type="number" value="${s.min||30}" placeholder="dk">
+    <button class="btn bad" onclick="delSvc(${i})">✕</button></div>`).join("")+`<p class="mute">Sıra: Hizmet adı · Fiyat · Süre (dk)</p>`;
+}
+function renderImgs(){
+  const src=p=>prev[p]||p;
+  $("#heroPrev").src=src(cfg.heroImage||"");
+  $("#galBox").innerHTML=(cfg.gallery||[]).map((p,i)=>`<div class="g"><img src="${esc(src(p))}" alt=""><button onclick="delImg(${i})">✕</button></div>`).join("");
+}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+function collect(){
+  cfg.name=$("#f_name").value.trim();cfg.about=$("#f_about").value.trim();cfg.phone=$("#f_phone").value.trim();
+  cfg.whatsapp=$("#f_whatsapp").value.replace(/\D/g,"");cfg.address=$("#f_address").value.trim();cfg.mapQuery=$("#f_mapQuery").value.trim();
+  cfg.slotMinutes=+$("#f_slot").value;
+  cfg.hours={};
+  for(let d=0;d<7;d++){cfg.hours[d]=$("#h_on"+d).checked?[+$("#h_a"+d).value,+$("#h_b"+d).value]:null}
+  cfg.services=[...document.querySelectorAll(".svc")].map(r=>({name:r.querySelector(".sn").value.trim(),price:r.querySelector(".sp").value.trim(),min:+r.querySelector(".sm").value||30})).filter(s=>s.name);
+}
+function addSvc(){collect();cfg.services.push({name:"",price:"",min:30});renderSvc();const n=document.querySelectorAll(".svc .sn");n[n.length-1].focus()}
+function delSvc(i){collect();cfg.services.splice(i,1);renderSvc()}
+function delImg(i){if(!confirm("Fotoğraf galeriden kaldırılsın mı?"))return;collect();cfg.gallery.splice(i,1);renderImgs()}
+
+async function uploadImage(file){
+  const bmp=await createImageBitmap(file);
+  const max=1280,sc=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const c=document.createElement("canvas");c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);
+  const url=c.toDataURL("image/jpeg",.82);
+  const name="images/"+Date.now()+Math.floor(Math.random()*1000)+".jpg";
+  const r=await api(name,{method:"PUT",body:JSON.stringify({message:"Görsel ekle",content:url.split(",")[1]})});
+  if(!r.ok)throw new Error(await errText(r));
+  prev[name]=url;
+  return name;
+}
+$("#heroFile").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{msg("Fotoğraf yükleniyor...");collect();cfg.heroImage=await uploadImage(f);renderImgs();msg("Kapak fotoğrafı yüklendi. Yayınlamak için Kaydet'e basın.")}
+  catch(err){msg("Yüklenemedi: "+err.message,"err")}
+  e.target.value="";
+};
+$("#galFile").onchange=async e=>{
+  const fs=[...e.target.files];if(!fs.length)return;
+  try{
+    collect();cfg.gallery=cfg.gallery||[];
+    for(let i=0;i<fs.length;i++){msg(`Yükleniyor ${i+1}/${fs.length}...`);cfg.gallery.push(await uploadImage(fs[i]))}
+    renderImgs();msg("Fotoğraflar yüklendi. Yayınlamak için Kaydet'e basın.");
+  }catch(err){msg("Yüklenemedi: "+err.message,"err")}
+  e.target.value="";
+};
+
+async function save(){
+  collect();
+  for(let d=0;d<7;d++){const h=cfg.hours[d];if(h&&!(h[0]>=0&&h[1]<=24&&h[1]>h[0])){msg(DAYS[d]+" için saatler hatalı (kapanış açılıştan büyük olmalı).","err");return}}
+  if(!cfg.services.length){msg("En az bir hizmet olmalı.","err");return}
+  const btn=$("#saveBtn");btn.disabled=true;btn.textContent="Kaydediliyor...";
+  try{
+    const body={message:"Ayarları güncelle",content:b64e(JSON.stringify(cfg,null,2)+"\n")};
+    if(sha)body.sha=sha;
+    let r=await api("config.json",{method:"PUT",body:JSON.stringify(body)});
+    if(r.status===409||r.status===422){ // sha eskimiş: yeniden al
+      const g=await api("config.json");if(g.ok){body.sha=(await g.json()).sha;r=await api("config.json",{method:"PUT",body:JSON.stringify(body)})}
+    }
+    if(!r.ok){msg("Kaydedilemedi: "+await errText(r),"err");return}
+    sha=(await r.json()).content.sha;
+    msg("✓ Kaydedildi. Değişiklikler 1-2 dakika içinde sitede görünür.");
+  }catch(e){msg("Hata: "+e.message,"err")}
+  finally{btn.disabled=false;btn.textContent="Kaydet ve Yayınla"}
+}
+
+if(S.token&&S.owner&&S.repo)doLogin();
+</script>
+</body>
+</html>

@@ -64,7 +64,7 @@ nav button.active{color:var(--gold)}
   <img id="heroImg" src="images/kapak.jpg" alt="" onerror="this.style.display='none'">
   <div class="in wrap">
     <div class="stars">★ ★</div>
-    <h1>İki Yıldız</h1>
+    <h1 id="shopName">İki Yıldız</h1>
     <p>Erkek Kuaförü</p>
     <div><span id="openBadge" class="badge"></span></div>
   </div>
@@ -140,7 +140,9 @@ nav button.active{color:var(--gold)}
 
 <script>
 /* ======== BURAYI KENDİNİZE GÖRE DÜZENLEYİN ======== */
-const SHOP = {
+let SHOP = {
+  name: "İki Yıldız",
+  heroImage: "images/kapak.jpg",
   about: "İki Yıldız Erkek Kuaförü'nde saç kesimi, sakal tasarımı ve bakım hizmetleri. Online randevu ile sırada beklemeden hizmet alın.",
   phone: "05XX XXX XX XX",          // arama butonu için
   whatsapp: "905XXXXXXXXX",          // başında + olmadan, 90 ile başlayan numara
@@ -164,7 +166,7 @@ const SHOP = {
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const DAYS=["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
 const store={get:()=>{try{return JSON.parse(localStorage.getItem("iy_rand")||"[]")}catch(e){return[]}},set:v=>{try{localStorage.setItem("iy_rand",JSON.stringify(v))}catch(e){}}};
-let selSvc=SHOP.services[0].name, selTime=null;
+let selSvc="", selTime=null;
 
 function go(id){
   $$("section").forEach(s=>s.classList.toggle("active",s.id===id));
@@ -177,6 +179,9 @@ $$("nav button").forEach(b=>b.onclick=()=>go(b.dataset.t));
 function toast(t){const e=$("#toast");e.textContent=t;e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
 
 function init(){
+  selSvc=SHOP.services[0]?SHOP.services[0].name:"";
+  $("#shopName").textContent=SHOP.name;document.title=SHOP.name+" Erkek Kuaförü";
+  const hi=$("#heroImg");hi.style.display="";hi.src=SHOP.heroImage||"";
   $("#about").textContent=SHOP.about;
   $("#callBtn").href="tel:"+SHOP.phone.replace(/\s/g,"");
   $("#callBtn").textContent="📞 "+SHOP.phone;
@@ -252,7 +257,10 @@ let dp;addEventListener("beforeinstallprompt",e=>{e.preventDefault();dp=e;$("#in
 $("#install").onclick=async()=>{if(dp){dp.prompt();await dp.userChoice;dp=null;$("#install").style.display="none"}};
 if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));
 
-init();
+// Ayarlar config.json dosyasından okunur (yönetim paneli bunu günceller)
+fetch("config.json?t="+Date.now(),{cache:"no-store"})
+  .then(r=>r.ok?r.json():{}).catch(()=>({}))
+  .then(c=>{SHOP=Object.assign(SHOP,c);init()});
 </script>
 </body>
 </html>
