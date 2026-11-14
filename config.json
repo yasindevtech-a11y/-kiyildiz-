@@ -36,7 +36,7 @@
   "services": [
     {
       "name": "Saç Kesimi",
-      "price": "250 ₺",
+      "price": "400 ₺",
       "min": 30
     },
     {
@@ -46,7 +46,7 @@
     },
     {
       "name": "Saç + Sakal",
-      "price": "350 ₺",
+      "price": "550 ₺",
       "min": 60
     }
   ],
