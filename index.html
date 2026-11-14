@@ -304,6 +304,7 @@ async function renderList(){
     let lb="Onay bekliyor",cl="st-bekliyor",can=true;
     if(s==="onaylandi"){lb="Onaylandı";cl="st-onay"}
     if(s==="iptal"){lb="İptal edildi";cl="st-iptal";can=false}
+    if(s==="bitti"){lb="Tamamlandı";cl="st-onay";can=false}
     if(r.cancelReq&&s!=="iptal"){lb="İptal talebi gönderildi";can=false}
     return `<div class="card"><div class="row"><b>${esc(r.svc)}</b><span class="status ${cl}">${lb}</span></div>
     <div class="mute" style="margin:6px 0">📅 ${fmtDate(r.date)} · 🕐 ${esc(r.time)}</div>

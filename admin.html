@@ -30,6 +30,10 @@ input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px soli
 .tabs{display:flex;gap:8px;margin-bottom:14px}
 .tabs button{flex:1;padding:10px 4px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 .tabs button.sel{background:var(--gold);color:#111;border-color:var(--gold)}
+.tabs button{position:relative}
+#tabs button{font-size:17px;padding:14px 4px}
+.bdg{position:absolute;top:-7px;right:-3px;min-width:20px;height:20px;border-radius:10px;background:var(--bad);color:#fff;font-size:12px;line-height:20px;font-style:normal;padding:0 5px}
+.st-bitti{background:#2a2a2a;color:var(--mute)}
 .status{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
 .st-bekliyor{background:#3b2f10;color:var(--gold)}.st-iptal{background:#3b1816;color:var(--bad)}.st-onay{background:#143b22;color:var(--ok)}
 .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -115,7 +119,7 @@ ol{padding-left:18px;margin:8px 0}li{margin-bottom:6px}
       <button data-act="flt" data-id="old">Geçmiş</button>
     </div>
     <div id="rqList"></div>
-    <div class="card">
+    <div class="card" id="manualCard">
       <h2>Manuel randevu ekle</h2>
       <p class="mute">Telefonla veya kapıdan gelen müşteriyi takvime işleyin, saat müşterilere dolu görünür.</p>
       <label>Hizmet</label><select id="m_svc"></select>
@@ -398,6 +402,9 @@ async function setReq(id,action){
         sl.forEach(s=>st.taken[s]=id);st.status[id]={s:"onaylandi",d:r.date};
       });
       r.status="onaylandi";r.cancelReq=false;toast("Onaylandı, müşteri görecek");
+    }else if(action==="done"){
+      await updateState(st=>{Object.keys(st.taken).forEach(k=>{if(st.taken[k]===id)delete st.taken[k]});st.status[id]={s:"bitti",d:r.date}});
+      r.status="bitti";r.cancelReq=false;toast("Geçmiş randevulara taşındı");
     }else{
       await updateState(st=>{Object.keys(st.taken).forEach(k=>{if(st.taken[k]===id)delete st.taken[k]});st.status[id]={s:"iptal",d:r.date}});
       r.status="iptal";r.cancelReq=false;toast("İptal edildi, saat tekrar boşaldı");
@@ -405,28 +412,48 @@ async function setReq(id,action){
     lsSet("iy_reqs",REQS);renderReqs();
   }catch(e){msg("#msg",e.message,"err");scrollTo(0,0)}
 }
+function reqCard(r,today){
+  let lb="Onay bekliyor",cl="st-bekliyor";
+  if(r.status==="onaylandi"){lb="Onaylandı";cl="st-onay"}
+  if(r.status==="iptal"){lb="İptal";cl="st-iptal"}
+  if(r.status==="bitti"){lb="Tamamlandı";cl="st-bitti"}
+  if(r.cancelReq&&r.status==="onaylandi"){lb="İptal istiyor";cl="st-iptal"}
+  const wa="https://wa.me/90"+String(r.phone||"").slice(1)+"?text="+encodeURIComponent(`Merhaba ${r.name}, ${fmtDate(r.date)} saat ${r.time} randevunuz `+(r.status==="iptal"?"iptal edildi.":"onaylandı. Sizi bekliyoruz."));
+  const old=r.status==="iptal"||r.status==="bitti"||(r.status==="onaylandi"&&r.date<today);
+  return `<div class="card"><div class="row"><b>${esc(r.svc)}</b><span class="status ${cl}">${lb}</span></div>
+  <div class="mute" style="margin:6px 0">📅 ${fmtDate(r.date)} · 🕐 ${esc(r.time)}${r.n>1?` (${r.n*STEP} dk)`:""}</div>
+  <div>👤 ${esc(r.name)}${r.phone?` · <a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>`:""}</div>
+  ${r.note?`<div class="mute">📝 ${esc(r.note)}</div>`:""}
+  <div class="acts">
+    ${r.status==="bekliyor"?`<button class="btn good sm" data-act="ok" data-id="${esc(r.id)}">Onayla</button><button class="btn bad sm" data-act="no" data-id="${esc(r.id)}">Reddet</button>`:""}
+    ${r.status==="onaylandi"?`<button class="btn good sm" data-act="done" data-id="${esc(r.id)}">İş bitti</button><button class="btn bad sm" data-act="no" data-id="${esc(r.id)}">${r.cancelReq?"İptali onayla":"İptal et"}</button>`:""}
+    ${old?`<button class="btn alt sm" data-act="delReq" data-id="${esc(r.id)}">Sil</button>`:""}
+    ${r.phone&&r.status!=="bitti"?`<a class="btn alt sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}
+  </div></div>`;
+}
 function renderReqs(){
   const today=iso(new Date());
-  const pend=REQS.filter(r=>r.status==="bekliyor"||r.cancelReq&&r.status!=="iptal");
-  const list={pend,up:REQS.filter(r=>r.status==="onaylandi"&&r.date>=today),old:REQS.filter(r=>r.status==="iptal"||(r.status==="onaylandi"&&r.date<today))}[flt]
-    .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-  $("#tabRq").textContent="Randevular"+(pend.length?` (${pend.length})`:"");
+  const pend=REQS.filter(r=>r.status==="bekliyor"||r.cancelReq&&r.status==="onaylandi");
+  const list={
+    pend,
+    up:REQS.filter(r=>r.status==="onaylandi"&&r.date>=today),
+    old:REQS.filter(r=>r.status==="iptal"||r.status==="bitti"||(r.status==="onaylandi"&&r.date<today))
+  }[flt].sort((a,b)=>flt==="old"?(b.date+b.time).localeCompare(a.date+a.time):(a.date+a.time).localeCompare(b.date+b.time));
+  $("#tabRq").innerHTML="Randevular"+(pend.length?`<i class="bdg">${pend.length}</i>`:"");
   $$("#flt button")[0].textContent="Bekleyen"+(pend.length?` (${pend.length})`:"");
+  $("#manualCard").style.display=flt==="pend"?"block":"none";
   if(navigator.setAppBadge){pend.length?navigator.setAppBadge(pend.length).catch(()=>{}):navigator.clearAppBadge().catch(()=>{})}
-  $("#rqList").innerHTML=list.length?list.map(r=>{
-    let lb="Onay bekliyor",cl="st-bekliyor";
-    if(r.status==="onaylandi"){lb="Onaylandı";cl="st-onay"}if(r.status==="iptal"){lb="İptal";cl="st-iptal"}
-    if(r.cancelReq&&r.status!=="iptal"){lb="İptal istiyor";cl="st-iptal"}
-    const wa="https://wa.me/90"+String(r.phone||"").slice(1)+"?text="+encodeURIComponent(`Merhaba ${r.name}, ${fmtDate(r.date)} saat ${r.time} randevunuz `+(r.status==="iptal"?"iptal edildi.":"onaylandı. Sizi bekliyoruz."));
-    return `<div class="card"><div class="row"><b>${esc(r.svc)}</b><span class="status ${cl}">${lb}</span></div>
-    <div class="mute" style="margin:6px 0">📅 ${fmtDate(r.date)} · 🕐 ${esc(r.time)}${r.n>1?` (${r.n*STEP} dk)`:""}</div>
-    <div>👤 ${esc(r.name)}${r.phone?` · <a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>`:""}</div>
-    ${r.note?`<div class="mute">📝 ${esc(r.note)}</div>`:""}
-    <div class="acts">
-      ${r.status==="bekliyor"?`<button class="btn good sm" data-act="ok" data-id="${esc(r.id)}">Onayla</button>`:""}
-      ${r.status!=="iptal"?`<button class="btn bad sm" data-act="no" data-id="${esc(r.id)}">${r.status==="bekliyor"?"Reddet":r.cancelReq?"İptali onayla":"İptal et"}</button>`:`<button class="btn alt sm" data-act="delReq" data-id="${esc(r.id)}">Listeden sil</button>`}
-      ${r.phone?`<a class="btn alt sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}
-    </div></div>`}).join(""):`<p class="mute">Kayıt yok.</p>`;
+  let html="";
+  if(!list.length)html=`<p class="mute">Kayıt yok.</p>`;
+  else if(flt==="up"){
+    const t=list.filter(r=>r.date===today),f=list.filter(r=>r.date>today);
+    if(t.length)html+=`<h2>Bugün (${t.length})</h2>`+t.map(r=>reqCard(r,today)).join("");
+    if(f.length)html+=`<h2 style="margin-top:14px">Gelecek randevular (${f.length})</h2>`+f.map(r=>reqCard(r,today)).join("");
+  }else{
+    html=list.map(r=>reqCard(r,today)).join("");
+    if(flt==="old")html+=`<button class="btn bad full" data-act="clearOld">Geçmişi temizle (${list.length} kayıt)</button>`;
+  }
+  $("#rqList").innerHTML=html;
 }
 function fillManual(){
   $("#m_svc").innerHTML=CFG.services.map(s=>`<option value="${esc(s.name)}" data-min="${+s.min||30}">${esc(s.name)}</option>`).join("");
@@ -444,7 +471,7 @@ async function manual(){
   const r={id:Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4),svc:o.value,date,time,n:Math.max(1,Math.ceil((+o.dataset.min||30)/STEP)),name:($("#m_name").value.trim()||"Manuel randevu").slice(0,60),phone:"",note:"",status:"bekliyor",cancelReq:false,ts:Date.now()};
   REQS.push(r);lsSet("iy_reqs",REQS);
   await setReq(r.id,"ok");
-  if(r.status!=="onaylandi"){REQS=REQS.filter(x=>x.id!==r.id);lsSet("iy_reqs",REQS);renderReqs()}else $("#m_name").value="";
+  if(r.status!=="onaylandi"){REQS=REQS.filter(x=>x.id!==r.id);lsSet("iy_reqs",REQS);renderReqs()}else{$("#m_name").value="";toast("Onaylı randevulara eklendi")}
 }
 
 /* ---------- Ayarlar / Galeri ---------- */
@@ -501,7 +528,14 @@ const ACT={
   flt:d=>{flt=d.id;$$("#flt button").forEach(b=>b.classList.toggle("sel",b.dataset.id===d.id));renderReqs()},
   ok:d=>setReq(d.id,"ok"),
   no:d=>{if(confirm("Randevu iptal edilsin / reddedilsin mi?"))setReq(d.id,"no")},
-  delReq:d=>{REQS=REQS.filter(r=>r.id!==d.id);lsSet("iy_reqs",REQS);renderReqs()},
+  done:d=>{if(confirm("Müşterinin işi bitti, geçmişe taşınsın mı?"))setReq(d.id,"done")},
+  delReq:d=>{if(!confirm("Bu kayıt silinsin mi?"))return;REQS=REQS.filter(r=>r.id!==d.id);lsSet("iy_reqs",REQS);renderReqs()},
+  clearOld:()=>{
+    const today=iso(new Date());
+    if(!confirm("Geçmişteki tüm kayıtlar bu telefondan silinsin mi?"))return;
+    REQS=REQS.filter(r=>!(r.status==="iptal"||r.status==="bitti"||(r.status==="onaylandi"&&r.date<today)));
+    lsSet("iy_reqs",REQS);renderReqs();toast("Geçmiş temizlendi");
+  },
   manual,
   addSvc:()=>{collect();CFG.services.push({name:"",price:"",min:30});renderSvc()},
   delSvc:d=>{collect();CFG.services.splice(+d.i,1);renderSvc()},
