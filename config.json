@@ -50,7 +50,9 @@
       "min": 60
     }
   ],
-  "gallery": [],
+  "gallery": [
+    "images/1794683599140968.jpg"
+  ],
   "ntfyTopic": "iykuafor-6q1c641z1p025f5b1o",
   "pubKey": {
     "kty": "RSA",
