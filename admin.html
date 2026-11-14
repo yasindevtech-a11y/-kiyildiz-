@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#111111">
+<title>İki Yıldız Yönetim</title>
+<link rel="manifest" href="manifest-admin.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{--bg:#111;--card:#1b1b1b;--line:#2c2c2c;--gold:#d4a437;--text:#f2f2f2;--mute:#9a9a9a;--ok:#3ecf6e;--bad:#e5534b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:40px}
+a{color:var(--gold)}
+.wrap{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:0}h2{font-size:17px;margin:0 0 10px;color:var(--gold)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mute{color:var(--mute);font-size:13px;line-height:1.5}
+label{display:block;margin:10px 0 5px;font-size:13px;color:var(--mute)}
+input,select,textarea{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#111;color:var(--text);font-size:16px;font-family:inherit}
+.btn{display:inline-block;text-align:center;text-decoration:none;border:0;border-radius:10px;padding:12px 14px;font-size:15px;font-weight:700;cursor:pointer;background:var(--gold);color:#111;font-family:inherit}
+.btn.full{width:100%;display:block}
+.btn.alt{background:#2a2a2a;color:var(--text)}.btn.bad{background:#3b1816;color:var(--bad)}.btn.good{background:#143b22;color:var(--ok)}
+.btn.sm{padding:8px 12px;font-size:13px}.btn:disabled{opacity:.5}
+.msg{padding:12px;border-radius:10px;margin-bottom:12px;font-size:14px;display:none}
+.msg.ok{display:block;background:#143b22;color:var(--ok)}.msg.err{display:block;background:#3b1816;color:var(--bad)}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{flex:1;padding:10px 4px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.tabs button.sel{background:var(--gold);color:#111;border-color:var(--gold)}
+.status{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.st-bekliyor{background:#3b2f10;color:var(--gold)}.st-iptal{background:#3b1816;color:var(--bad)}.st-onay{background:#143b22;color:var(--ok)}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.svc{display:grid;grid-template-columns:1fr 78px 78px 40px;gap:6px;margin-bottom:8px}
+.svc input,.svc select{padding:10px 8px;font-size:15px}
+.day{display:grid;grid-template-columns:110px 1fr 1fr;gap:6px;align-items:center;margin-bottom:8px}
+.day label{margin:0;display:flex;gap:6px;align-items:center;color:var(--text);font-size:15px}
+.day input[type=checkbox]{width:auto}.day input{padding:10px}
+.agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.ag{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#111}
+.ag img{width:100%;height:100%;object-fit:cover}
+.ag button{position:absolute;top:4px;right:4px;width:28px;height:28px;border-radius:50%;border:0;background:#000b;color:#fff;font-size:15px}
+.heroprev{width:100%;height:150px;object-fit:cover;border-radius:10px;background:#111;display:block;margin-bottom:8px}
+.toast{position:fixed;left:16px;right:16px;bottom:24px;background:var(--gold);color:#111;padding:14px;border-radius:12px;font-weight:700;text-align:center;display:none;z-index:20}
+code{background:#111;padding:2px 6px;border-radius:6px;word-break:break-all}
+ol{padding-left:18px;margin:8px 0}li{margin-bottom:6px}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mute);margin-right:6px}
+.live.on{background:var(--ok)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- İLK KURULUM -->
+<div id="setup" style="display:none">
+  <h1>★ ★ Yönetim - Kurulum</h1>
+  <p class="mute">Bir kere yapılır. Bilgiler sadece bu telefonda, şifrenizle şifrelenerek saklanır.</p>
+  <div class="msg" id="setMsg"></div>
+  <div class="card">
+    <h2>GitHub bilgileri</h2>
+    <label>Kullanıcı adı</label><input id="su_owner" autocapitalize="off" autocomplete="off">
+    <label>Depo (repository) adı</label><input id="su_repo" autocapitalize="off" autocomplete="off">
+    <label>Erişim anahtarı (token)</label><input id="su_token" type="password" autocomplete="off" placeholder="github_pat_...">
+    <h2 style="margin-top:16px">Uygulama şifresi</h2>
+    <label>Yeni şifre (en az 6 karakter)</label><input id="su_p1" type="password" autocomplete="new-password">
+    <label>Şifre tekrar</label><input id="su_p2" type="password" autocomplete="new-password">
+    <button class="btn full" style="margin-top:16px" data-act="setup">Kurulumu Tamamla</button>
+  </div>
+  <div class="card">
+    <h2>Token nasıl alınır?</h2>
+    <ol class="mute">
+      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Buraya dokunun</a> (GitHub'a giriş yapmış olun).</li>
+      <li><b>Token name:</b> kuafor-panel. <b>Expiration:</b> No expiration.</li>
+      <li><b>Repository access:</b> Only select repositories > sadece bu depoyu seçin.</li>
+      <li><b>Permissions > Repositories > Contents:</b> Read and write.</li>
+      <li>Generate token. Çıkan <code>github_pat_...</code> kodunu kopyalayıp yukarı yapıştırın. Kodu kimseyle paylaşmayın, sohbete yazmayın.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- KİLİT -->
+<div id="lock" style="display:none">
+  <h1>★ ★ İki Yıldız Yönetim</h1>
+  <div class="msg" id="lkMsg"></div>
+  <div class="card" style="margin-top:16px">
+    <form id="lockForm">
+      <label>Şifre</label>
+      <input id="lk_pass" type="password" autocomplete="current-password" required>
+      <button class="btn full" style="margin-top:14px" type="submit">Giriş</button>
+    </form>
+    <p class="mute" style="margin-top:14px"><a href="#" data-act="resetAll">Şifremi unuttum / sıfırla</a></p>
+  </div>
+</div>
+
+<!-- UYGULAMA -->
+<div id="app" style="display:none">
+  <div class="row" style="margin-bottom:12px">
+    <h1>★ ★ Yönetim</h1>
+    <div><span class="mute"><i class="live" id="live"></i></span><button class="btn alt sm" data-act="lock">Kilitle</button></div>
+  </div>
+  <div class="msg" id="msg"></div>
+  <div class="tabs" id="tabs">
+    <button class="sel" data-act="tab" data-id="rq" id="tabRq">Randevular</button>
+    <button data-act="tab" data-id="st">Ayarlar</button>
+    <button data-act="tab" data-id="gl">Galeri</button>
+  </div>
+
+  <!-- RANDEVULAR -->
+  <div id="t_rq">
+    <div class="tabs" id="flt">
+      <button class="sel" data-act="flt" data-id="pend">Bekleyen</button>
+      <button data-act="flt" data-id="up">Onaylı</button>
+      <button data-act="flt" data-id="old">Geçmiş</button>
+    </div>
+    <div id="rqList"></div>
+    <div class="card">
+      <h2>Manuel randevu ekle</h2>
+      <p class="mute">Telefonla veya kapıdan gelen müşteriyi takvime işleyin, saat müşterilere dolu görünür.</p>
+      <label>Hizmet</label><select id="m_svc"></select>
+      <label>Tarih</label><input type="date" id="m_date">
+      <label>Saat</label><select id="m_time"></select>
+      <label>Ad (isteğe bağlı)</label><input id="m_name" placeholder="Müşteri adı">
+      <button class="btn full" style="margin-top:12px" data-act="manual">Ekle</button>
+    </div>
+  </div>
+
+  <!-- AYARLAR -->
+  <div id="t_st" style="display:none">
+    <div class="card"><h2>Genel Bilgiler</h2>
+      <label>İşletme adı</label><input id="s_name">
+      <label>Tanıtım yazısı</label><textarea id="s_about" rows="3"></textarea>
+      <label>Telefon (arama butonu)</label><input id="s_phone" type="tel">
+      <label>WhatsApp numarası (905XXXXXXXXX)</label><input id="s_wa" type="tel">
+      <label>Adres</label><textarea id="s_addr" rows="2"></textarea>
+      <label>Haritada aranacak adres / işletme adı</label><input id="s_map">
+    </div>
+    <div class="card"><h2>Çalışma Saatleri</h2><div id="s_hours"></div>
+      <p class="mute">Kutu işaretli değilse o gün kapalı. 24 saatlik (örn. 10 ve 20). Randevular 30 dakikalık aralıklarla verilir.</p></div>
+    <div class="card"><h2>Hizmetler ve Fiyatlar</h2><div id="s_svc"></div>
+      <button class="btn alt sm" data-act="addSvc">+ Hizmet ekle</button>
+      <p class="mute">Sıra: Hizmet adı · Fiyat · Süre</p></div>
+    <div class="card"><h2>Kapak Fotoğrafı</h2>
+      <img id="s_heroPrev" class="heroprev" alt="">
+      <button class="btn alt sm" data-act="pickHero">Fotoğraf seç</button>
+      <input id="heroFile" type="file" accept="image/*" hidden></div>
+    <button class="btn full" id="saveSet" data-act="saveSettings">Ayarları Kaydet ve Yayınla</button>
+
+    <div class="card" style="margin-top:16px"><h2>Bildirimler (ntfy)</h2>
+      <p class="mute">Yeni randevu talebi geldiğinde telefonunuza bildirim düşmesi için ücretsiz <b>ntfy</b> uygulaması gerekir (uygulama kapalıyken de çalışır):</p>
+      <ol class="mute">
+        <li>Play Store'dan <b>ntfy</b> uygulamasını kurun.</li>
+        <li>Uygulamada <b>+</b> ile abone olun, konu adı olarak aşağıdaki kodu yapıştırın. Sunucu: ntfy.sh</li>
+        <li>Bildirim izinlerini ve pil tasarrufu istisnasını verin.</li>
+      </ol>
+      <label>Konu adınız (kimseyle paylaşmayın)</label>
+      <input id="s_topic" readonly>
+      <div class="acts"><button class="btn alt sm" data-act="copyTopic">Kopyala</button>
+        <a class="btn alt sm" id="ntfyLink" href="#">ntfy'de aç</a>
+        <button class="btn alt sm" data-act="notifPerm">Bu uygulamada da bildirim</button>
+        <button class="btn bad sm" data-act="newTopic">Konuyu yenile</button></div>
+    </div>
+    <div class="card"><h2>Hesap</h2>
+      <div class="acts"><button class="btn alt sm" data-act="changePass">Şifreyi değiştir</button>
+      <button class="btn bad sm" data-act="resetAll">Bu telefondan çıkış (token'ı sil)</button></div></div>
+  </div>
+
+  <!-- GALERİ -->
+  <div id="t_gl" style="display:none">
+    <div class="card"><h2>Galeri Fotoğrafları</h2>
+      <div class="agrid" id="g_grid"></div>
+      <button class="btn alt sm" data-act="pickGal">+ Fotoğraf ekle</button>
+      <input id="galFile" type="file" accept="image/*" multiple hidden>
+      <p class="mute">En fazla 12 fotoğraf. Otomatik küçültülür ve hemen yayınlanır.</p></div>
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const DAYS=["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtDate=d=>new Date(d+"T00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"long",weekday:"long"});
+const lsGet=(k,def)=>{try{return JSON.parse(localStorage.getItem(k))??def}catch(e){return def}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const b64e=s=>btoa(unescape(encodeURIComponent(s)));
+const b64d=s=>decodeURIComponent(escape(atob(s.replace(/\n/g,""))));
+function toast(t){const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",3500)}
+function msg(sel,t,type){const m=$(sel);m.textContent=t;m.className="msg"+(t?" "+(type||"ok"):"")}
+
+let V=lsGet("iy_vault",null);   // {owner,repo,salt,iv,ct}
+let TOKEN=null,CFG=null,CFGSHA=null,REQS=lsGet("iy_reqs",[]),es=null,flt="pend";
+const STEP=30;
+
+/* ---------- Şifreleme (şifre -> anahtar -> token) ---------- */
+const enc=new TextEncoder(),dec=new TextDecoder();
+const toB=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
+const fromB=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function keyFrom(pass,salt){
+  const k=await crypto.subtle.importKey("raw",enc.encode(pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:250000,hash:"SHA-256"},k,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encryptToken(pass,token){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},await keyFrom(pass,salt),enc.encode(token));
+  return{salt:toB(salt),iv:toB(iv),ct:toB(ct)};
+}
+async function decryptToken(pass,v){
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromB(v.iv)},await keyFrom(pass,fromB(v.salt)),fromB(v.ct));
+  return dec.decode(pt);
+}
+
+/* ---------- GitHub ---------- */
+function gh(path,opt){
+  return fetch(`https://api.github.com/repos/${V.owner}/${V.repo}/contents/${path}`,{cache:"no-store",...(opt||{}),
+    headers:{Authorization:"Bearer "+TOKEN,Accept:"application/vnd.github+json","Content-Type":"application/json"}});
+}
+async function errText(r){
+  let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401)return "Token geçersiz veya süresi dolmuş.";
+  if(r.status===403||r.status===404)return "Erişim yok: token'da 'Contents: Read and write' izni ve doğru depo seçili mi? ("+r.status+")";
+  return (j.message||"Hata")+" ("+r.status+")";
+}
+async function putFile(path,contentB64,sha,message){
+  const body={message,content:contentB64};if(sha)body.sha=sha;
+  return gh(path,{method:"PUT",body:JSON.stringify(body)});
+}
+async function loadCfg(){
+  const r=await gh("config.json");
+  if(r.status===404){CFG=null;CFGSHA=null}
+  else if(!r.ok)throw new Error(await errText(r));
+  else{const j=await r.json();CFGSHA=j.sha;CFG=JSON.parse(b64d(j.content))}
+  let changed=false;
+  if(!CFG){CFG={name:"İki Yıldız",hero:"",about:"",phone:"",whatsapp:"",address:"",mapQuery:"",hours:{0:null,1:[10,20],2:[10,20],3:[10,20],4:[10,20],5:[10,20],6:[10,20]},services:[{name:"Saç Kesimi",price:"250 ₺",min:30},{name:"Sakal Tıraşı",price:"150 ₺",min:30},{name:"Saç + Sakal",price:"350 ₺",min:60}],gallery:[]};changed=true}
+  if(CFG.heroImage&&!CFG.hero){CFG.hero=CFG.heroImage;changed=true}
+  if(!CFG.ntfyTopic){CFG.ntfyTopic="iykuafor-"+[...crypto.getRandomValues(new Uint8Array(12))].map(x=>x.toString(36).padStart(2,"0")).join("").slice(0,18);changed=true}
+  if(!CFG.hours)CFG.hours={0:null,1:[10,20],2:[10,20],3:[10,20],4:[10,20],5:[10,20],6:[10,20]};
+  CFG.services=CFG.services||[];CFG.gallery=CFG.gallery||[];
+  if(changed)await saveCfg("Ayarlar");
+}
+async function saveCfg(m){
+  const r=await putFile("config.json",b64e(JSON.stringify(CFG,null,2)+"\n"),CFGSHA,m||"Ayarları güncelle");
+  if(!r.ok){
+    if(r.status===409||r.status===422){const g=await gh("config.json");if(g.ok){CFGSHA=(await g.json()).sha;const r2=await putFile("config.json",b64e(JSON.stringify(CFG,null,2)+"\n"),CFGSHA,m||"Ayarları güncelle");if(r2.ok){CFGSHA=(await r2.json()).content.sha;return}}}
+    throw new Error(await errText(r));
+  }
+  CFGSHA=(await r.json()).content.sha;
+}
+function prune(st){
+  const today=iso(new Date()),old=new Date();old.setDate(old.getDate()-30);const oldS=iso(old);
+  Object.keys(st.taken).forEach(k=>{if(k.slice(0,10)<today)delete st.taken[k]});
+  Object.keys(st.status).forEach(k=>{if((st.status[k].d||"")<oldS)delete st.status[k]});
+}
+async function updateState(mut){
+  for(let i=0;i<3;i++){
+    const r=await gh("data/state.json");let st={taken:{},status:{}},sha=null;
+    if(r.ok){const j=await r.json();sha=j.sha;st=JSON.parse(b64d(j.content))}else if(r.status!==404)throw new Error(await errText(r));
+    st.taken=st.taken||{};st.status=st.status||{};
+    mut(st);prune(st);
+    const p=await putFile("data/state.json",b64e(JSON.stringify(st)),sha,"Randevu durumu");
+    if(p.ok)return st;
+    if(p.status!==409&&p.status!==422)throw new Error(await errText(p));
+  }
+  throw new Error("Aynı anda başka değişiklik oldu, tekrar deneyin.");
+}
+
+/* ---------- Ekranlar ---------- */
+function screen(){
+  $("#setup").style.display=!V?"block":"none";
+  $("#lock").style.display=(V&&!TOKEN)?"block":"none";
+  $("#app").style.display=TOKEN?"block":"none";
+  if(!V){$("#su_owner").value=$("#su_owner").value||guess().o;$("#su_repo").value=$("#su_repo").value||guess().r}
+}
+function guess(){const h=location.hostname,p=location.pathname.split("/").filter(Boolean);return h.endsWith(".github.io")?{o:h.split(".")[0],r:(p[0]&&!p[0].includes("."))?p[0]:h}:{o:"",r:""}}
+
+async function setup(){
+  const owner=$("#su_owner").value.trim(),repo=$("#su_repo").value.trim(),token=$("#su_token").value.trim(),p1=$("#su_p1").value,p2=$("#su_p2").value;
+  if(!owner||!repo||!token){msg("#setMsg","GitHub bilgilerini doldurun.","err");return}
+  if(p1.length<6){msg("#setMsg","Şifre en az 6 karakter olmalı.","err");return}
+  if(p1!==p2){msg("#setMsg","Şifreler aynı değil.","err");return}
+  msg("#setMsg","Kontrol ediliyor...");
+  try{
+    const r=await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/`,{headers:{Authorization:"Bearer "+token}});
+    if(!r.ok){V={owner,repo};TOKEN=token;const t=await errText(r);V=null;TOKEN=null;msg("#setMsg",t,"err");return}
+    const vault=await encryptToken(p1,token);
+    V={owner,repo,...vault};TOKEN=token;
+    await afterUnlock();
+    lsSet("iy_vault",V);
+    msg("#setMsg","");
+  }catch(e){V=lsGet("iy_vault",null);TOKEN=null;msg("#setMsg","Hata: "+e.message,"err")}
+}
+async function unlock(e){
+  e.preventDefault();msg("#lkMsg","Açılıyor...");
+  try{TOKEN=await decryptToken($("#lk_pass").value,V)}
+  catch(err){TOKEN=null;msg("#lkMsg","Şifre yanlış.","err");return}
+  $("#lk_pass").value="";
+  try{await afterUnlock();msg("#lkMsg","")}catch(err){TOKEN=null;msg("#lkMsg","Bağlantı hatası: "+err.message,"err")}
+}
+async function afterUnlock(){
+  await loadCfg();
+  screen();renderAll();connect();
+}
+function lock(){TOKEN=null;CFG=null;if(es){es.close();es=null}screen();$("#live").classList.remove("on")}
+
+/* ---------- Bildirim / canlı talep akışı ---------- */
+function parseMsg(m){
+  const L=String(m).split("\n"),get=p=>{const l=L.find(x=>x.startsWith(p));return l?l.slice(p.length).trim():""};
+  const kod=L.find(x=>x.startsWith("Kod:"));if(!kod)return null;
+  const [id,date,time,n,min]=kod.slice(4).trim().split("|");
+  if(!/^[a-z0-9]{6,16}$/.test(id||"")||!/^\d{4}-\d\d-\d\d$/.test(date||"")||!/^\d\d:\d\d$/.test(time||""))return null;
+  return{id,date,time,n:Math.min(4,Math.max(1,+n||1)),min:+min||30,svc:get("Hizmet:").slice(0,60),name:get("Ad:").slice(0,60),phone:get("Tel:").replace(/\D/g,"").slice(0,11),note:get("Not:").slice(0,200),cancel:L[0].startsWith("İPTAL")};
+}
+function connect(){
+  if(es)es.close();
+  const since=lsGet("iy_since","12h");
+  es=new EventSource(`https://ntfy.sh/${CFG.ntfyTopic}/sse?since=${encodeURIComponent(since)}`);
+  es.onopen=()=>$("#live").classList.add("on");
+  es.onerror=()=>$("#live").classList.remove("on");
+  es.onmessage=ev=>{try{const m=JSON.parse(ev.data);if(m.event==="message")handleMsg(m)}catch(e){}};
+}
+function handleMsg(m){
+  const seen=lsGet("iy_seen",[]);if(seen.includes(m.id))return;
+  lsSet("iy_seen",[...seen,m.id].slice(-300));lsSet("iy_since",m.id);
+  const p=parseMsg(m.message);if(!p)return;
+  const ex=REQS.find(r=>r.id===p.id);
+  if(p.cancel){
+    if(ex){if(ex.status==="iptal")return;ex.cancelReq=true}
+    else REQS.push({...p,status:"onaylandi",cancelReq:true,ts:m.time*1000});
+    notify("İptal talebi",p.name+" · "+fmtDate(p.date)+" "+p.time);
+  }else{
+    if(ex)return;
+    REQS.push({...p,status:"bekliyor",cancelReq:false,ts:m.time*1000});
+    notify("Yeni randevu talebi",p.name+" · "+fmtDate(p.date)+" "+p.time);
+  }
+  lsSet("iy_reqs",REQS);renderReqs();
+}
+function notify(title,body){
+  toast(title+": "+body);if(navigator.vibrate)navigator.vibrate([200,100,200]);
+  if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){
+    navigator.serviceWorker.ready.then(r=>r.showNotification(title,{body,icon:"icons/icon-192.png"})).catch(()=>{});
+  }
+}
+
+/* ---------- Randevular ---------- */
+const slotsOf=r=>{const [h,m]=r.time.split(":").map(Number),a=[];for(let k=0;k<r.n;k++){const t=h*60+m+k*STEP;a.push(r.date+"_"+pad(Math.floor(t/60))+":"+pad(t%60))}return a};
+async function setReq(id,action){
+  const r=REQS.find(x=>x.id===id);if(!r)return;
+  try{
+    if(action==="ok"){
+      const sl=slotsOf(r);
+      await updateState(st=>{
+        sl.forEach(s=>{if(st.taken[s]&&st.taken[s]!==id)throw new Error("Bu saat başka randevuya verilmiş. Önce onu iptal edin veya bu talebi reddedin.")});
+        sl.forEach(s=>st.taken[s]=id);st.status[id]={s:"onaylandi",d:r.date};
+      });
+      r.status="onaylandi";r.cancelReq=false;toast("Onaylandı, müşteri görecek");
+    }else{
+      await updateState(st=>{Object.keys(st.taken).forEach(k=>{if(st.taken[k]===id)delete st.taken[k]});st.status[id]={s:"iptal",d:r.date}});
+      r.status="iptal";r.cancelReq=false;toast("İptal edildi, saat tekrar boşaldı");
+    }
+    lsSet("iy_reqs",REQS);renderReqs();
+  }catch(e){msg("#msg",e.message,"err");scrollTo(0,0)}
+}
+function renderReqs(){
+  const today=iso(new Date());
+  const pend=REQS.filter(r=>r.status==="bekliyor"||r.cancelReq&&r.status!=="iptal");
+  const list={pend,up:REQS.filter(r=>r.status==="onaylandi"&&r.date>=today),old:REQS.filter(r=>r.status==="iptal"||(r.status==="onaylandi"&&r.date<today))}[flt]
+    .sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  $("#tabRq").textContent="Randevular"+(pend.length?` (${pend.length})`:"");
+  $$("#flt button")[0].textContent="Bekleyen"+(pend.length?` (${pend.length})`:"");
+  if(navigator.setAppBadge){pend.length?navigator.setAppBadge(pend.length).catch(()=>{}):navigator.clearAppBadge().catch(()=>{})}
+  $("#rqList").innerHTML=list.length?list.map(r=>{
+    let lb="Onay bekliyor",cl="st-bekliyor";
+    if(r.status==="onaylandi"){lb="Onaylandı";cl="st-onay"}if(r.status==="iptal"){lb="İptal";cl="st-iptal"}
+    if(r.cancelReq&&r.status!=="iptal"){lb="İptal istiyor";cl="st-iptal"}
+    const wa="https://wa.me/90"+String(r.phone||"").slice(1)+"?text="+encodeURIComponent(`Merhaba ${r.name}, ${fmtDate(r.date)} saat ${r.time} randevunuz `+(r.status==="iptal"?"iptal edildi.":"onaylandı. Sizi bekliyoruz."));
+    return `<div class="card"><div class="row"><b>${esc(r.svc)}</b><span class="status ${cl}">${lb}</span></div>
+    <div class="mute" style="margin:6px 0">📅 ${fmtDate(r.date)} · 🕐 ${esc(r.time)}${r.n>1?` (${r.n*STEP} dk)`:""}</div>
+    <div>👤 ${esc(r.name)}${r.phone?` · <a href="tel:${esc(r.phone)}">${esc(r.phone)}</a>`:""}</div>
+    ${r.note?`<div class="mute">📝 ${esc(r.note)}</div>`:""}
+    <div class="acts">
+      ${r.status==="bekliyor"?`<button class="btn good sm" data-act="ok" data-id="${esc(r.id)}">Onayla</button>`:""}
+      ${r.status!=="iptal"?`<button class="btn bad sm" data-act="no" data-id="${esc(r.id)}">${r.status==="bekliyor"?"Reddet":r.cancelReq?"İptali onayla":"İptal et"}</button>`:`<button class="btn alt sm" data-act="delReq" data-id="${esc(r.id)}">Listeden sil</button>`}
+      ${r.phone?`<a class="btn alt sm" href="${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}
+    </div></div>`}).join(""):`<p class="mute">Kayıt yok.</p>`;
+}
+function fillManual(){
+  $("#m_svc").innerHTML=CFG.services.map(s=>`<option value="${esc(s.name)}" data-min="${+s.min||30}">${esc(s.name)}</option>`).join("");
+  const d=$("#m_date");if(!d.value)d.value=iso(new Date());d.min=iso(new Date());
+  fillTimes();
+}
+function fillTimes(){
+  const dv=$("#m_date").value,h=dv&&CFG.hours[new Date(dv+"T00:00").getDay()];
+  const a=[];if(h)for(let m=h[0]*60;m<h[1]*60;m+=STEP)a.push(pad(Math.floor(m/60))+":"+pad(m%60));
+  $("#m_time").innerHTML=a.length?a.map(t=>`<option>${t}</option>`).join(""):`<option value="">Kapalı gün</option>`;
+}
+async function manual(){
+  const o=$("#m_svc").selectedOptions[0],time=$("#m_time").value,date=$("#m_date").value;
+  if(!o||!time||!date){toast("Hizmet, tarih ve saat seçin");return}
+  const r={id:Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4),svc:o.value,date,time,n:Math.max(1,Math.ceil((+o.dataset.min||30)/STEP)),name:($("#m_name").value.trim()||"Manuel randevu").slice(0,60),phone:"",note:"",status:"bekliyor",cancelReq:false,ts:Date.now()};
+  REQS.push(r);lsSet("iy_reqs",REQS);
+  await setReq(r.id,"ok");
+  if(r.status!=="onaylandi"){REQS=REQS.filter(x=>x.id!==r.id);lsSet("iy_reqs",REQS);renderReqs()}else $("#m_name").value="";
+}
+
+/* ---------- Ayarlar / Galeri ---------- */
+function renderSettings(){
+  $("#s_name").value=CFG.name||"";$("#s_about").value=CFG.about||"";$("#s_phone").value=CFG.phone||"";
+  $("#s_wa").value=CFG.whatsapp||"";$("#s_addr").value=CFG.address||"";$("#s_map").value=CFG.mapQuery||"";
+  $("#s_hours").innerHTML=[1,2,3,4,5,6,0].map(d=>{const h=CFG.hours[d];
+    return `<div class="day"><label><input type="checkbox" id="h_on${d}" ${h?"checked":""}>${DAYS[d]}</label>
+    <input type="number" min="0" max="23" id="h_a${d}" value="${h?h[0]:10}"><input type="number" min="1" max="24" id="h_b${d}" value="${h?h[1]:20}"></div>`}).join("");
+  renderSvc();$("#s_heroPrev").src=CFG.hero||"images/kapak.jpg";
+  $("#s_topic").value=CFG.ntfyTopic;$("#ntfyLink").href="ntfy://ntfy.sh/"+CFG.ntfyTopic;
+}
+function renderSvc(){
+  $("#s_svc").innerHTML=CFG.services.map((s,i)=>`<div class="svc"><input class="sn" value="${esc(s.name)}" placeholder="Hizmet"><input class="sp" value="${esc(s.price)}" placeholder="Fiyat">
+  <select class="sm">${[30,60,90,120].map(m=>`<option value="${m}"${+s.min===m?" selected":""}>${m} dk</option>`).join("")}</select>
+  <button class="btn bad" style="padding:0" data-act="delSvc" data-i="${i}">✕</button></div>`).join("");
+}
+function collect(){
+  CFG.name=$("#s_name").value.trim()||"İki Yıldız";CFG.about=$("#s_about").value.trim();CFG.phone=$("#s_phone").value.trim();
+  CFG.whatsapp=$("#s_wa").value.replace(/\D/g,"");CFG.address=$("#s_addr").value.trim();CFG.mapQuery=$("#s_map").value.trim()||CFG.address;
+  CFG.hours={};for(let d=0;d<7;d++)CFG.hours[d]=$("#h_on"+d).checked?[+$("#h_a"+d).value,+$("#h_b"+d).value]:null;
+  CFG.services=$$("#s_svc .svc").map(r=>({name:r.querySelector(".sn").value.trim(),price:r.querySelector(".sp").value.trim(),min:+r.querySelector(".sm").value})).filter(s=>s.name);
+}
+async function saveSettings(){
+  collect();
+  for(let d=0;d<7;d++){const h=CFG.hours[d];if(h&&!(h[0]>=0&&h[1]<=24&&h[1]>h[0])){toast(DAYS[d]+" saatleri hatalı");return}}
+  if(!CFG.services.length){toast("En az bir hizmet olmalı");return}
+  const b=$("#saveSet");b.disabled=true;b.textContent="Kaydediliyor...";
+  try{await saveCfg();toast("✓ Yayınlandı (1-2 dk içinde sitede görünür)");fillManual()}catch(e){msg("#msg",e.message,"err");scrollTo(0,0)}
+  finally{b.disabled=false;b.textContent="Ayarları Kaydet ve Yayınla"}
+}
+async function shrink(file,max,q){
+  const bmp=await createImageBitmap(file),sc=Math.min(1,max/Math.max(bmp.width,bmp.height));
+  const c=document.createElement("canvas");c.width=Math.round(bmp.width*sc);c.height=Math.round(bmp.height*sc);
+  c.getContext("2d").drawImage(bmp,0,0,c.width,c.height);return c.toDataURL("image/jpeg",q);
+}
+const prev={};
+async function upload(file,max){
+  const url=await shrink(file,max,.8),name="images/"+Date.now()+Math.floor(Math.random()*1000)+".jpg";
+  const r=await putFile(name,url.split(",")[1],null,"Görsel ekle");
+  if(!r.ok)throw new Error(await errText(r));
+  prev[name]=url;return name;
+}
+function renderGal(){
+  $("#g_grid").innerHTML=CFG.gallery.map((p,i)=>`<div class="ag"><img src="${esc(prev[p]||p)}" alt=""><button data-act="delImg" data-i="${i}">✕</button></div>`).join("")||`<p class="mute" style="grid-column:1/-1">Henüz fotoğraf yok.</p>`;
+}
+function renderAll(){renderReqs();renderSettings();renderGal();fillManual()}
+
+/* ---------- Tıklamalar ---------- */
+const ACT={
+  setup,lock,
+  resetAll:()=>{if(!confirm("Bu telefondaki token, şifre ve randevu kayıtları silinsin mi? (Sitedeki veriler silinmez)"))return;["iy_vault","iy_reqs","iy_since","iy_seen"].forEach(k=>localStorage.removeItem(k));location.reload()},
+  tab:d=>{["rq","st","gl"].forEach(x=>$("#t_"+x).style.display=x===d.id?"block":"none");$$("#tabs button").forEach(b=>b.classList.toggle("sel",b.dataset.id===d.id));if(d.id==="st")renderSettings();if(d.id==="gl")renderGal()},
+  flt:d=>{flt=d.id;$$("#flt button").forEach(b=>b.classList.toggle("sel",b.dataset.id===d.id));renderReqs()},
+  ok:d=>setReq(d.id,"ok"),
+  no:d=>{if(confirm("Randevu iptal edilsin / reddedilsin mi?"))setReq(d.id,"no")},
+  delReq:d=>{REQS=REQS.filter(r=>r.id!==d.id);lsSet("iy_reqs",REQS);renderReqs()},
+  manual,
+  addSvc:()=>{collect();CFG.services.push({name:"",price:"",min:30});renderSvc()},
+  delSvc:d=>{collect();CFG.services.splice(+d.i,1);renderSvc()},
+  saveSettings,
+  pickHero:()=>$("#heroFile").click(),pickGal:()=>$("#galFile").click(),
+  delImg:async d=>{if(!confirm("Fotoğraf galeriden kaldırılsın mı?"))return;CFG.gallery.splice(+d.i,1);renderGal();try{await saveCfg("Galeri")}catch(e){msg("#msg",e.message,"err")}},
+  copyTopic:async()=>{try{await navigator.clipboard.writeText(CFG.ntfyTopic);toast("Kopyalandı")}catch(e){$("#s_topic").select();toast("Seçildi, elle kopyalayın")}},
+  notifPerm:async()=>{if(!("Notification" in window)){toast("Bu tarayıcı desteklemiyor");return}const p=await Notification.requestPermission();toast(p==="granted"?"Bildirim izni verildi":"İzin verilmedi")},
+  newTopic:async()=>{
+    if(!confirm("Konu adı değişecek. ntfy uygulamasında yeni konuya yeniden abone olmanız gerekir. Devam?"))return;
+    CFG.ntfyTopic="iykuafor-"+[...crypto.getRandomValues(new Uint8Array(12))].map(x=>x.toString(36).padStart(2,"0")).join("").slice(0,18);
+    try{await saveCfg("Bildirim konusu");lsSet("iy_since","12h");connect();renderSettings();toast("Yeni konu hazır")}catch(e){msg("#msg",e.message,"err")}
+  },
+  changePass:async()=>{
+    const old=prompt("Mevcut şifre:");if(old==null)return;
+    try{await decryptToken(old,V)}catch(e){toast("Mevcut şifre yanlış");return}
+    const n=prompt("Yeni şifre (en az 6 karakter):");if(!n||n.length<6){toast("Şifre değişmedi");return}
+    V={owner:V.owner,repo:V.repo,...(await encryptToken(n,TOKEN))};lsSet("iy_vault",V);toast("Şifre değişti");
+  }
+};
+document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el)return;if(el.tagName==="A"&&el.getAttribute("href")==="#")e.preventDefault();const f=ACT[el.dataset.act];if(f)f(el.dataset,el)});
+$("#lockForm").addEventListener("submit",unlock);
+$("#m_date").addEventListener("change",fillTimes);
+$("#heroFile").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{toast("Yükleniyor...");collect();CFG.hero=await upload(f,1000);$("#s_heroPrev").src=prev[CFG.hero];toast("Yüklendi, 'Kaydet ve Yayınla'ya basın")}catch(err){msg("#msg",err.message,"err")}
+});
+$("#galFile").addEventListener("change",async e=>{
+  const fl=[...e.target.files];e.target.value="";if(!fl.length)return;
+  if(CFG.gallery.length+fl.length>12){toast("En fazla 12 fotoğraf");return}
+  try{
+    for(let i=0;i<fl.length;i++){toast(`Yükleniyor ${i+1}/${fl.length}...`);CFG.gallery.push(await upload(fl[i],900))}
+    await saveCfg("Galeri");renderGal();toast("Fotoğraflar yayınlandı");
+  }catch(err){msg("#msg",err.message,"err")}
+});
+
+/* Otomatik kilit */
+let lastAct=Date.now(),hiddenAt=0;
+["click","touchstart","keydown"].forEach(ev=>addEventListener(ev,()=>lastAct=Date.now(),{passive:true}));
+setInterval(()=>{if(TOKEN&&Date.now()-lastAct>10*60*1000)lock()},30000);
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden)hiddenAt=Date.now();
+  else if(TOKEN&&Date.now()-hiddenAt>2*60*1000)lock();
+});
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js"));
+screen();
+</script>
+</body>
+</html>
