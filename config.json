@@ -51,5 +51,15 @@
     }
   ],
   "gallery": [],
-  "ntfyTopic": "iykuafor-6q1c641z1p025f5b1o"
+  "ntfyTopic": "iykuafor-6q1c641z1p025f5b1o",
+  "pubKey": {
+    "kty": "RSA",
+    "n": "6eR3CCvrt1bz0WaDJQ9yXjqGb4XaKf_Qu7CG9mOYb58HPAThkF_4yFIkFVSJ64-uI0tX0et2GvH1ncZB5o7JZrHTg62iqNjoI4plCnVoUFgVbV9Xc6p7oTuwm1CcE7yFuZ1mbeynXwZaXJALUOivwVEMlilG2a5oWOVGk9RukXZEvDuZ5QnB1M2maZQdMen6iGSn2jsOOn0tOu4fw8VLvG9-9bRfGy1CUF8AR6YLYslEeW7yTt-aKYTr1ueM5xfiwu2MiWDUP368l-Xca8PLQgohr8MTUI57a8yser-gp88j2S3KPzOf7zYLUoWXZwZFne4aqegNhjF7g8plXCyNIQ",
+    "e": "AQAB",
+    "alg": "RSA-OAEP-256",
+    "ext": true,
+    "key_ops": [
+      "encrypt"
+    ]
+  }
 }
