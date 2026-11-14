@@ -1,35 +1,35 @@
 {
   "name": "İki Yıldız",
   "hero": "images/1794679274445966.jpg",
-  "about": "",
-  "phone": "05375120777",
-  "whatsapp": "905375120777",
+  "about": "15 yılı aşkın deneyimi ile mahallemizin sıcak samimi bir yuvası Tecrübe ve kaliteyi arayanların tercihi..",
+  "phone": "0507 329 26 54",
+  "whatsapp": "905073292654",
   "address": "Akdere, 397 cadde no 2/A",
   "mapQuery": "https://maps.app.goo.gl/SaVmrurdZ2Qdfyb67",
   "hours": {
     "0": null,
     "1": [
-      10,
+      9,
       20
     ],
     "2": [
-      10,
+      9,
       20
     ],
     "3": [
-      10,
+      9,
       20
     ],
     "4": [
-      10,
+      9,
       20
     ],
     "5": [
-      10,
+      9,
       20
     ],
     "6": [
-      10,
+      9,
       20
     ]
   },
