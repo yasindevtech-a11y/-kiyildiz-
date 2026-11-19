@@ -1,0 +1,66 @@
+name: APK derle
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Debug APK derle
+        run: gradle assembleDebug --no-daemon
+
+      - name: Sanal telefon için KVM aç
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Sanal telefonda uygulamayı aç ve kaydı al
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c
+            adb shell am start -W -n com.example.wakaydet/.MainActivity
+            sleep 10
+            adb logcat -d > logcat.txt
+            adb exec-out screencap -p > ekran.png
+
+      - name: Hata satırlarını yazdır
+        if: always()
+        run: |
+          echo "=== HATA SATIRLARI ==="
+          grep -E "AndroidRuntime|FATAL EXCEPTION|Process: |wakaydet" logcat.txt | head -100 || echo "logcat.txt yok veya hata satırı bulunamadı"
+
+      - name: APK'yı Releases bölümüne yükle
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk wa-kaydedici.apk
+          FILES="wa-kaydedici.apk"
+          [ -f logcat.txt ] && FILES="$FILES logcat.txt"
+          [ -f ekran.png ] && FILES="$FILES ekran.png"
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest $FILES --title "Son derleme" --notes "Otomatik derleme"
